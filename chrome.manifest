@@ -1,0 +1,6 @@
+content	firescrape	content/
+locale	firescrape	en-US	locale/en-US/
+skin	firescrape	classic/1.0	skin/
+overlay	chrome://browser/content/browser.xul	chrome://firescrape/content/firefoxOverlay.xul
+style	chrome://global/content/customizeToolbar.xul	chrome://firescrape/skin/overlay.css
+overlay chrome://firebug/content/firebugOverlay.xul         chrome://firescrape/content/firebugOverlay.xul
