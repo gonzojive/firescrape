@@ -1,16 +1,20 @@
 FBL.ns(function() { 
 	with (FBL) {
-            
             function addMenuItems() {
-                var fbGetContextMenuItems = Firebug.HTMLPanel.getContextMenuItems; 
-                Firebug.HTMLPanel.getContextMenuItems = function(event) { 
-                    var items = fbGetContextMenuItems(event); 
-                    items.push({label: "CopyInnerHTML",
-                                command: function() { alert("worked!"); } });
-                    items.push({label: "CopyInnerHTML",
-                                command: function() { alert("worked!"); } });
+                var fbGetContextMenuItems = Firebug.HTMLPanel.prototype.getContextMenuItems;
+                
+                Firebug.HTMLPanel.prototype.getContextMenuItems = function(node, target) {
+                    
+                    var items = fbGetContextMenuItems.call(this, node, target); 
+
+                    items.push("-");
+                    items.push({ label: "extensions.firescrape.MarkContainerElement",
+                                 command: function() { 
+                                     alert("");
+                                     }
+                                 });
                     return items; 
-                }
+                };
             }
 
             var panelName = "Firescrape";
@@ -25,8 +29,8 @@ FBL.ns(function() {
                            onMyButton: function(context) {
                                var helloWorldRep = domplate({
                                        myTag:
-                                       DIV({class: "MyDiv"},
-                                           "Hello World, again!"
+                                       DIV( {"class": "MyDiv"},
+                                            "Hello World, tada!"
                                            )
                                    });
                                addMenuItems();
@@ -42,8 +46,11 @@ FBL.ns(function() {
                        {
                            name: panelName,
                            title: "Scrape",
-                           initialize: function() {
+
+                           initialize: function()
+                           {
                                Firebug.Panel.initialize.apply(this, arguments);
+                               addMenuItems();
                            }
                        });
 
