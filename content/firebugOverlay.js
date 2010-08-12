@@ -1,23 +1,7 @@
 FBL.ns(function() { 
 	with (FBL) {
-            function addMenuItems() {
-                var fbGetContextMenuItems = Firebug.HTMLPanel.prototype.getContextMenuItems;
-                
-                Firebug.HTMLPanel.prototype.getContextMenuItems = function(node, target) {
-                    
-                    var items = fbGetContextMenuItems.call(this, node, target); 
-
-                    items.push("-");
-                    items.push({ label: "extensions.firescrape.MarkContainerElement",
-                                 command: function() { 
-                                     alert("");
-                                     }
-                                 });
-                    return items; 
-                };
-            }
-
             var panelName = "Firescrape";
+            
             Firebug.FirescrapeModel = 
                 extend(Firebug.Module,
                        {
@@ -33,7 +17,6 @@ FBL.ns(function() {
                                             "Hello World, tada!"
                                            )
                                    });
-                               addMenuItems();
                                var panel = context.getPanel(panelName);
                                var parentNode = panel.panelNode;
                                var rootTemplateElement = helloWorldRep.myTag.append({}, parentNode, helloWorldRep);
@@ -41,6 +24,7 @@ FBL.ns(function() {
                        });
 
 	    function FirescrapePanel() {}
+
 	    FirescrapePanel.prototype = 
                 extend(Firebug.Panel,
                        {
@@ -50,7 +34,41 @@ FBL.ns(function() {
                            initialize: function()
                            {
                                Firebug.Panel.initialize.apply(this, arguments);
-                               addMenuItems();
+                               this.attachToHTMLPanel();
+                           },
+                           
+                           getHTMLPanelContextMenuItems : function(node, target) {
+                               var panel = this;
+                               items = [];
+                               items.push("-");
+                               items.push({ 
+                                              label: "extensions.firescrape.MarkContainerElement",
+                                              command: function() { 
+                                                  Firebug.Console.log("Marked %o", node);
+                                                  panel.markedElement = node;
+                                              }
+                                          });
+                               items.push({ 
+                                              label: "extensions.firescrape.CopyRelativeXPath",
+                                              command: function() {
+                                                  var xpath = firescrape.relativeXPath(node, panel.markedElement);
+                                                  Firebug.Console.log("Copied XPath %o", xpath);
+                                                  copyToClipboard(xpath);
+                                              }
+                                          });
+                               return items;
+                           },
+                           attachToHTMLPanel: function()
+                           { 
+                               var scapePanel = this;
+                               var fbGetContextMenuItems = Firebug.HTMLPanel.prototype.getContextMenuItems;
+                                   
+                               Firebug.HTMLPanel.prototype.getContextMenuItems = function(node, target) {
+                                   
+                                   var items = fbGetContextMenuItems.call(this, node, target); 
+                                   var myItems = scapePanel.getHTMLPanelContextMenuItems(node, target);
+                                   return items.concat(myItems);
+                               };
                            }
                        });
 
