@@ -44,17 +44,18 @@ function attributeXPath (node) {
     else
         return "";
 }
-        
+
 function elemXPathRelativeToParent(elt) {
-   var index = 0;
-   for (var sibling = elt.previousSibling; sibling; sibling = sibling.previousSibling)
-   {
-       if (sibling.localName == elt.localName)
-          ++index;
-   }
+    var siblings = Array.prototype.filter.call(elt.parentNode.childNodes,
+                                               function (node) {
+                                                   return node.nodeType === 1 && node.localName === elt.localName;
+                                               });
+
+    var includeIndex = siblings.length > 1;
+    var index = siblings.indexOf(elt);
 
     var tagName = nname(elt);
-    var pathIndex = (index > 0 ? "[" + (index+1) + "]" : "");
+    var pathIndex = (includeIndex ? "[" + (index+1) + "]" : "");
     var attributeExpressions = attributeXPath(elt);
    return tagName + pathIndex + attributeExpressions;
 }
@@ -64,15 +65,15 @@ function relativeXPath(elt, relative) {
     if (elt.ownerDocument !== relative.ownerDocument)
         relative = elt.ownerDocument;
 
-    var ancestry = nodeAncestry(elt);
-    var relAncestry = nodeAncestry(relative);
+    var ancestry = nodeAncestry(elt).reverse();
+    var relAncestry = nodeAncestry(relative).reverse();
 
     var commonAncestor = null;
     var commonAncestorDepth = null;
     for (var i=0; i < ancestry.length && i < relAncestry.length; i++)
     {
-        var eltAncestor = ancestry[ancestry.length - 1 - i];
-        var relAncestor = relAncestry[relAncestry.length - 1 - i];
+        var eltAncestor = ancestry[i];
+        var relAncestor = relAncestry[i];
         if (eltAncestor === relAncestor)
         {
             commonAncestor = eltAncestor;
@@ -85,11 +86,10 @@ function relativeXPath(elt, relative) {
     //unsafeWindow.console.log("Common ancestor of %o and %o, %o", elt, relative, commonAncestor);
     //unsafeWindow.console.log("lineage: %o and %o", ancestry, relAncestry);
     
-    
     var xpathStr = "";
     for (var i=0; i < ancestry.length; i++)
     {
-        var node = ancestry[i];
+        var node = ancestry[ancestry.length - i - 1];
         
         if (node.nodeType === 9)
             xpathStr = "/" + xpathStr;
@@ -102,7 +102,7 @@ function relativeXPath(elt, relative) {
         
         if (node === commonAncestor)
         {
-            for (var j = commonAncestorDepth; j < relAncestry.length; j++)
+            for (var j = commonAncestorDepth + 1; j < relAncestry.length; j++)
             {
                 xpathStr = "../" + xpathStr;
             }

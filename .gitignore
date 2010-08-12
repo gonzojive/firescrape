@@ -2,3 +2,5 @@
 *~
 \#*
 .\#*
+.emacs.desktop*
+*.xpi
