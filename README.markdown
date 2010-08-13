@@ -11,9 +11,40 @@ second node to the clipboard.  Note that the xpath may be useful
 verbatim, but generally it will be overly constrained and you might
 want to play around with it.
 
+## Design
+
+Screen scraping can be a complex task that requires advanced
+programming and specialized logic.  Firescrape provides tools
+necessary for creating rudimentary screen scrapers.
+
+Most screen scrapers I have written have two major components:
+navigating to various pages, and then gathering information from the
+pages retrieved.  At present, Firescrape attempts to do a very good
+job at the latter ask.  The navigation task is a long-term goal of the
+project (help appreciated!).
+
+XML/HTML pages are tree structures of nested nodes.  Scrapers take as
+in put an HTML hierarchy and usually produce hierarchical output, like
+
+* list of projects
+   * project-name
+   * project-creation-date
+   * project-creator
+      * name
+      * telephone
+
+
+To accomplish this, we define the idea of a "scraper" as a function of
+some inputs that produces some intermediary output that it then passes
+along to its children to yield the final result
+
 ## TODO
 
-1.
+1. UI for defining hierarchical screen scrapers based on XPath
+   expressions.
+
+2. Navigation features -- creating screen scrapers that crawl around
+   the web
 
 ## Installation 
 
@@ -34,7 +65,7 @@ For development you should do the following:
 
 3. Restart Firefox.
   
-For more information, see the Mozillazine Knowledge Base:
-[http://kb.mozillazine.org/Getting_started_with_extension_development]()
+For more information, see the
+[Mozillazine Knowledge Base article](http://kb.mozillazine.org/Getting_started_with_extension_development)
 
 

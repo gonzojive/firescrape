@@ -1,0 +1,34 @@
+.scrape {
+    background-image: url(chrome://firebug/skin/win/twistyClosed.png);
+    background-repeat: no-repeat;
+    background-position: 2px 2px;
+    color: blue;
+}
+
+.scrape-table-header {
+    height: 16px;
+    font-weight: bold;
+    background: #BBBBBB url(chrome://firecookie/skin/tableHeader.gif) repeat-x;
+    white-space: nowrap;
+    border-bottom: 1px solid #9C9C9C;
+    -moz-user-select: none;
+    padding: 2px 14px 2px 18px;
+}
+
+.scrape-table {
+    width: 100%;
+}
+
+.scraper-row > .scraper-name .scraper-title {
+    padding-left: 16px;
+    background-image: url(chrome://firebug/skin/win/twistyClosed.png);
+    background-repeat: no-repeat;
+    background-position: 2px 2px;
+    cursor: pointer;
+    color: green;
+    
+}
+
+.opened.scraper-row > .scraper-name .scraper-title {
+    background-image: url(chrome://firebug/skin/win/twistyOpen.png);
+}

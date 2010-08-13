@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+<?xml-stylesheet href="chrome://firescrape/skin/firescrape.css" type="text/css"?>
 <overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <script src="chrome://firescrape/content/firescrape-lib.js" type="application/x-javascript"/>
   <script src="chrome://firescrape/content/firebugOverlay.js" type="application/x-javascript"/>
