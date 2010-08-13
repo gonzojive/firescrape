@@ -1,18 +1,73 @@
 FBL.ns(function() { 
 	with (FBL) {
+
+            function FIRESCRAPE_STR(name) {
+                var good = Firescrape.strings.getString(name);
+                if (good)
+                    return good;
+                else
+                    return name;
+            }
+            
             var panelName = "Firescrape";
 
             Firebug.FirescrapeModel = 
                 extend(Firebug.Module,
                        {
+                           scrapers: [],
+                           win: null,
+                           firescrapeListeners: [],
+
                            initialize : function(prefDomain, prefNames) {
                                this.attachToHTMLPanel();
+                           },
+
+                           watchWindow: function(context, win)
+                           {
+                               this.win = win;
+                           },
+
+                           unwatchWindow: function(context, win)
+                           {
+                               if (this.win === win) {
+                                   this.win = null;
+                               }
+                           },
+
+
+                           addScraper : function(scraper) {
+                               this.scrapers.push(scraper);
+                               dispatchNoCatch(this.firescrapeListeners, "onScraperAdded", [ scraper ]);
+                           },
+
+                           removeScraper : function(scraper) {
+                               this.scrapers = this.scapers.filter(
+                                   function(x){
+                                       return x !== scraper;
+                                   });
+                               dispatchNoCatch(this.firescrapeListeners, "onScraperRemoved", [ scraper ]);
+                           },
+
+                           addListener : function(listener) {
+                               this.firescrapeListeners.push(listener);
+                           },
+
+                           removeListener : function(listener) {
+                               this.firescrapeListeners = this.firescrapeListeners.filter(
+                                   function(x){
+                                       return x !== listener;
+                                   });
                            },
 
                            showPanel: function(browser, panel) {
                                var isHwPanel = panel && panel.name == panelName;
                                var hwButtons = browser.chrome.$("fbHelloWorldButtons");
                                collapse(hwButtons, !isHwPanel);
+                           },
+
+                           getPanel : function(context) {
+                               context = context || FirebugContext;
+                               return context.getPanel(panelName);
                            },
                            
                            onMyButton: function(context) {
@@ -30,14 +85,16 @@ FBL.ns(function() {
                                );
                            },
 
-                           onMyButtonOld: function(context) {
-                               var panel = context.getPanel(panelName);
-                               var parentNode = panel.panelNode;
-
-
-                               var scraper = {isScraper: true, tooltip: "eye yam"};  
-                               var rep = Firebug.getRep(scraper);
-                               var elem = rep.tag.append({object: scraper}, parentNode, rep);
+                           onRefresh: function(context) {
+                               var module = this;
+                               var doc = this.win && this.win.document;
+                               if (doc)
+                               {
+                                   this.scrapers.map(
+                                       function(scraper) {
+                                           return scraper.evalScraper(doc, false);
+                                       });
+                               }
                            },
 
                            addStyleSheet: function(panel)
@@ -54,44 +111,161 @@ FBL.ns(function() {
                            },
 
                            getHTMLPanelContextMenuItems : function(node, target) {
-                               var panel = this;
+                               var elementStorage = this;
+                               var panel = this.getPanel();
+                               
                                items = [];
                                items.push("-");
-                               items.push({ 
-                                              label: "extensions.firescrape.MarkContainerElement",
-                                              command: function() { 
-                                                  Firebug.Console.log("Marked %o", node);
-                                                  panel.markedElement = node;
-                                              }
-                                          });
-                               items.push({ 
-                                              label: "extensions.firescrape.CopyRelativeXPath",
-                                              command: function() {
-                                                  var xpath = firescrape.relativeXPath(node, panel.markedElement);
-                                                  Firebug.Console.log("Copied XPath %o", xpath);
-                                                  copyToClipboard(xpath);
-                                              }
-                                          });
+                               items.push(
+                                   { 
+                                       label: FIRESCRAPE_STR("extensions.firescrape.MarkContainerElement"),
+                                       command: function() { 
+                                           elementStorage.markedElement = node;
+                                       }
+                                   });
+                               items.push(
+                                   { 
+                                       label: FIRESCRAPE_STR("extensions.firescrape.CopyRelativeXPath"),
+                                       command: function() {
+                                           var xpath = firescrape.relativeXPath(node, elementStorage.markedElement);
+                                           copyToClipboard(xpath);
+                                       }
+                                   });
+                               items.push(
+                                   { 
+                                       label: FIRESCRAPE_STR("extensions.firescrape.DefineScraperRelativeTo"),
+                                       command: function() { 
+                                           var xpath = firescrape.relativeXPath(node, elementStorage.markedElement);
+                                           var name = prompt("Name for new scraper (xpath: " + xpath);
+                                           var myPanel = panel;
+                                           if (name && panel) {
+                                               var scraper = new XPathScraper(xpath, name);
+                                               Firebug.FirescrapeModel.addScraper(scraper);
+                                           }
+                                       }
+                                   });
                                return items;
                            },
                            attachToHTMLPanel: function()
                            { 
-                               var scapePanel = this;
+                               var model = this;
                                var fbGetContextMenuItems = Firebug.HTMLPanel.prototype.getContextMenuItems;
                                    
                                Firebug.HTMLPanel.prototype.getContextMenuItems = function(node, target) {
                                    
                                    var items = fbGetContextMenuItems.call(this, node, target); 
-                                   var myItems = scapePanel.getHTMLPanelContextMenuItems(node, target);
+                                   var myItems = model.getHTMLPanelContextMenuItems(node, target);
                                    return items.concat(myItems);
                                };
                            }
                        });
 
             /// Scraper
-            function Scraper() { this.xpath = "Some silly xpath";}
+            function Scraper() { this.initialize.apply(this, arguments); }
+            function XPathScraper() { Scraper.apply(this, arguments); }
 
-            // ************************************************************************************************
+            XPathScraper.prototype = extend(
+                Scraper.prototype,
+                {
+                    initialize : function(xpath, name) {
+                        this.children = {};
+                        this.xpath = xpath;
+                        this.name = name;
+                        this.listeners = [];
+                        this.children = {};
+                    },
+
+                    evalScraper : function(contextNode, evalChildren) {
+                        var nodes = firescrape.evaluateXPath(this.xpath, contextNode);
+                        
+                        dispatchNoCatch(this.listeners, "onEval", [nodes]);
+
+                        var result = {
+                            "output": nodes,
+                            "childOutput" : {}
+                        };
+
+                        if (evalChildren)
+                        {
+                            for (var childName in this.children)
+                            {
+                                var child = this.children[childName];
+                                result.childOutput[childName] = nodes.map(
+                                    function(node){
+                                        child.evalScraper(node, evalChildren);
+                                    });   
+                            }
+                            dispatchNoCatch(this.listeners, "onEvalRecursive", [result]);
+                        }
+                        
+                        return result;
+                    },
+
+                    setName : function(n) {
+                        var old = this.name;
+                        this.name = n;
+                        dispatchNoCatch(this.listeners, "onChangeName", [n, old]);
+                    },
+
+                    setXPath : function(n) {
+                        var old = this.xpath;
+                        this.xpath = n;
+                        dispatchNoCatch(this.listeners, "onChangeXPath", [n, old]);
+                    },
+
+
+                    getTitle : function() {
+                        return this.name;
+                    },
+
+                    getDetails : function() {
+                        return this.xpath;
+                    },
+                    
+                    addListener : function(listener) {
+                        this.listeners.push(listener);
+                    },
+                    
+                    removeListener : function(listener) {
+                        this.listeners = this.listeners.filter(
+                            function(x){
+                                return x !== listener;
+                            });
+                    },
+                    
+                    addChild : function(scraper, name) {
+                        var existing = this.children[name];
+                        if (existing)
+                            this.removeChild(existing);
+
+                        this.children[name] = scraper;
+                        dispatchNoCatch(this.listeners, "onChildAdded", [scraper]);
+                    },
+                    
+                    removeChild : function(scraper) {
+                        var removed = [];
+                        for (var name in this.children) {
+                            var child = this.children[name]; 
+                            if (child === scraper) {
+                                delete this.children[name];
+                                removed.push(child);
+                            }
+                        }
+
+                        var parent = this;
+                        removed.map(function(child){
+                                    dispatchNoCatch(parent.listeners, "onChildRemoved", [child]);
+                                    });
+                                    
+                    }
+
+
+                });
+
+            ///////////////////////////////////////////////////////
+            /////  UI
+            ///////////////////////////////////////////////////////
+
             // Templates Helpers
             
             // Object with all rep templates.
@@ -109,7 +283,7 @@ FBL.ns(function() {
                              },
                              getTitle: function(scraper, context)
                              {
-                                 return scraper.title || "Scraper";
+                                 return scraper.name || "Scraper";
                              }
                          });
 
@@ -121,14 +295,11 @@ FBL.ns(function() {
                                             TD({"class": "scraper-name"},
                                                FirebugReps.OBJECTBOX(
                                                    {_repObject: "$scraper",
-                                                    $hasTwisty: "$scraper|hasChildScrapers",
                                                     onclick: "$onToggleProperties"},
                                                    SPAN({"class": "scraper-title objectLink-object objectLink"},
-                                                        "$scraper|getTitle"))),
-                                            //FirebugReps.OBJECTLINK(
-                                            //    {object: "$object"},
-                                            //                       hasTwisty: true},
-                                            //    SPAN({"class": "scraper-title"}, "$object|getTitle"))),
+                                                        "$scraper|getTitle"),
+                                                   SPAN({"class": "scraper-details spyStatus"},
+                                                        "$scraper|getDetails"))),
                                             TD({"class": "scraper-value"},
                                                "--"))),
                              hasChildScrapers: function (scraper) {
@@ -148,7 +319,11 @@ FBL.ns(function() {
                              },
                              getTitle: function(scraper, context)
                              {
-                                 return scraper.title || "Scraper Title Here!";
+                                 return scraper.getTitle() || "Scraper Title Here!";
+                             },
+                             getDetails: function(scraper, context)
+                             {
+                                 return scraper.getDetails() || "";
                              }
                          });
 
@@ -197,20 +372,55 @@ FBL.ns(function() {
                        {
                            name: panelName,
                            title: "Scrape",
+                           scrapers: [],
 
                            initialize: function()
                            {
                                Firebug.Panel.initialize.apply(this, arguments);
                                Firebug.FirescrapeModel.addStyleSheet(this);
+                               Firebug.FirescrapeModel.addListener(this);
 
                                var panel = this;
                                var parentNode = panel.panelNode;
+
+                               
 
                                panel.tableNode = FSTemplates.ScraperTable.tableTag.append(
                                    {},
                                    parentNode,
                                    FSTemplates.ScraperTable
                                );
+                           },
+                           
+                           onScraperAdded : function(scraper) {
+                               var panel = this;
+                               var table = panel.tableNode;
+                               if (!table)
+                                   return;
+                               
+                               var tbody = table.getElementsByClassName("scrape-table-body")[0];
+                               var trs = FSTemplates.ScraperTableRow.rowTag.insertRows(
+                                   {scrapers: [ scraper ]},
+                                   tbody,
+                                   FSTemplates.ScraperTableRow
+                               );
+
+                               var tr = tbody.lastElementChild;
+
+                               var valueTd = tr.getElementsByClassName("scraper-value")[0];
+                               
+                               valueTd.innerHTML = "";
+
+                               scraper.addListener(
+                                   {
+                                       onEval: function(nodes) {
+                                           valueTd.innerHTML = "";
+                                           var rep = Firebug.getRep(nodes);
+                                           var tag = rep.tag; //rep.shortTag ? rep.shortTag : rep.tag;
+                                           tag.append({object : nodes }, valueTd, rep);
+                                       }
+                                   });
+                               
                            }
                        });
 

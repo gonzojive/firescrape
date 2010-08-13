@@ -1,4 +1,20 @@
 (function() {
+
+function evaluateXPath(aExpr, aNode) {
+  aExpr = aExpr.replace(/xhtml\:/g, "");
+  if (!aNode)
+     aNode = unsafeWindow.document;
+  var xpe = new XPathEvaluator();  
+  var nsResolver = xpe.createNSResolver(aNode.ownerDocument == null ?  
+    aNode.documentElement : aNode.ownerDocument.documentElement);  
+  var result = xpe.evaluate(aExpr, aNode, nsResolver, 0, null);  
+  var found = [];  
+  var res;  
+  while (res = result.iterateNext())  
+    found.push(res.wrappedJSObject);  
+  return found;  
+}
+
 function nodeAncestry(elem){
   if (elem.parentNode)
      return [elem].concat(nodeAncestry(elem.parentNode));
@@ -124,8 +140,29 @@ function relativeXPath(elt, relative) {
     return xpathStr;
 }
 
+FBL.dispatchNoCatch = function(listeners, name, args)
+{
+    if (!listeners)
+        return;
+
+    for (var i = 0; i < listeners.length; ++i)
+    {
+        var listener = listeners[i];
+        if ( listener[name] )
+        {
+            listener[name].apply(listener, args);
+        }
+        else
+        {
+        }
+    }
+
+};
+
+
 
 firescrape.relativeXPath = relativeXPath;
+firescrape.evaluateXPath = evaluateXPath;
 //unsafeWindow.relativeXPathToParent = elemXPathRelativeToParent;
 //unsafeWindow.nodeAncestry = nodeAncestry;
 

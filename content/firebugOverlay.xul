@@ -6,17 +6,25 @@
 
   <commandset id="mainCommandSet">
     <command id="cmd_fsMyButton" oncommand="Firebug.FirescrapeModel.onMyButton(FirebugContext)"/>
+    <command id="cmd_fsRefresh" oncommand="Firebug.FirescrapeModel.onRefresh(FirebugContext)"/>
   </commandset>
 
   <toolbar id="fbToolbar" align="center">
     <hbox id="fbToolbarInner" insertbefore="fbDetachButton" flex="1" align="center">
       <hbox id="fbHelloWorldButtons" insertafter="fbNetButtons">
         <toolbarseparator/>
+        <!--
         <toolbarbutton id="fsMyButton"
                        label="Say Hello"
                        class="toolbar-text-button"
                        tooltiptext="Push to say hello" 
                        command="cmd_fsMyButton"/>
+        -->
+        <toolbarbutton id="fsRefreshButton"
+                       label="Refresh"
+                       class="toolbar-text-button"
+                       tooltiptext="Refresh the 'Output' column" 
+                       command="cmd_fsRefresh"/>
       </hbox>
     </hbox>
   </toolbar>
