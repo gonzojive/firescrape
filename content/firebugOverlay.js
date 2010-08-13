@@ -141,6 +141,7 @@ FBL.ns(function() {
                                            if (name && panel) {
                                                var scraper = new XPathScraper(xpath, name);
                                                Firebug.FirescrapeModel.addScraper(scraper);
+                                               FirebugChrome.navigate(scraper, panelName, null);
                                            }
                                        }
                                    });
@@ -369,7 +370,7 @@ FBL.ns(function() {
             function FirescrapeSidePanel() {}
             
             FirescrapeSidePanel.prototype = extend(
-                Firebug.DOMBasePanel.prototype,
+                Firebug.Panel,
                 {
                     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
                     // extends Panel
@@ -377,7 +378,7 @@ FBL.ns(function() {
                     name: "scrapeSide",
                     parentPanel: panelName,
                     order: 3,
-                    //title: "Scraper",
+                    title: "Scraper",
                     
                     initializeNode : function(oldPanelNode)
                     {
@@ -394,7 +395,7 @@ FBL.ns(function() {
 	    function FirescrapePanel() {}
 
 	    FirescrapePanel.prototype = 
-                extend(Firebug.Panel.prototype,
+                extend(Firebug.Panel,
                        {
                            // properties inherited from Firebug.Panel
                            name: panelName,
@@ -420,6 +421,10 @@ FBL.ns(function() {
                                    parentNode,
                                    FSTemplates.ScraperTable
                                );
+                           },
+
+                           select : function(object) {
+                               
                            },
                            
                            onScraperAdded : function(scraper) {
@@ -456,7 +461,7 @@ FBL.ns(function() {
                            }
                        });
 
-            //Firebug.registerPanel(FirescrapeSidePanel);
+            Firebug.registerPanel(FirescrapeSidePanel);
 	    Firebug.registerPanel(FirescrapePanel);
 	    
 	    Firebug.registerModule(Firebug.FirescrapeModel);
