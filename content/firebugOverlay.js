@@ -364,14 +364,44 @@ FBL.ns(function() {
             //FSTemplates.ScraperTable,
             //FSTemplates.ScraperTableRow
             //);
+
+            
+            function FirescrapeSidePanel() {}
+            
+            FirescrapeSidePanel.prototype = extend(
+                Firebug.DOMBasePanel.prototype,
+                {
+                    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+                    // extends Panel
+                    
+                    name: "scrapeSide",
+                    parentPanel: panelName,
+                    order: 3,
+                    //title: "Scraper",
+                    
+                    initializeNode : function(oldPanelNode)
+                    {
+                        dispatch([Firebug.A11yModel], 'onInitializeNode', [this, 'console']);
+                    },
+                    
+                    destroyNode: function()
+                    {
+                        dispatch([Firebug.A11yModel], 'onDestroyNode', [this, 'console']);
+                    }
+                });
+
             
 	    function FirescrapePanel() {}
 
 	    FirescrapePanel.prototype = 
-                extend(Firebug.Panel,
+                extend(Firebug.Panel.prototype,
                        {
+                           // properties inherited from Firebug.Panel
                            name: panelName,
                            title: "Scrape",
+                           //dependents: ["scrapeSide"],
+
+                           // the rest...
                            scrapers: [],
 
                            initialize: function()
@@ -393,6 +423,8 @@ FBL.ns(function() {
                            },
                            
                            onScraperAdded : function(scraper) {
+                               var sideScrapePanel = FirebugContext.getPanel("scrapeSide", false);
+                               
                                var panel = this;
                                var table = panel.tableNode;
                                if (!table)
@@ -424,7 +456,9 @@ FBL.ns(function() {
                            }
                        });
 
+            //Firebug.registerPanel(FirescrapeSidePanel);
 	    Firebug.registerPanel(FirescrapePanel);
+	    
 	    Firebug.registerModule(Firebug.FirescrapeModel);
 
 	}});
